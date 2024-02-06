@@ -1,5 +1,7 @@
 %% Example
 
+addpath('permn')
+
 rng(10)
 n = 5e4;
 c = colormap('parula');
@@ -43,11 +45,8 @@ switch scenario
 end
 
 % Normal call
-%[bins_hw, counts_hw, edges_hw] = histweight(coords, values);
-
-% Changing limits and/or granularity
 limits = [floor(min(coords, [], 2)), 1 + ceil(max(coords, [], 2))];
-gra = 3;
+gra = 1;
 [bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra);
 
 xbincoords = edges_hw{1};
@@ -96,11 +95,3 @@ c.Label.String = 'counts';
 title('histcounts')
 xlabel('x')
 ylabel('y')
-
-%%
-sum_values = sum(values, 'all');
-sum_bins_hw = sum(bins_hw, 'all');
-sum_bins_hc = sum(bins_hc,'all');
-
-err1 = sum_bins_hw - sum_values
-err2 = sum_bins_hc - sum_values

@@ -62,9 +62,13 @@ centers2vertexes = permn([-1, 0, 1], D);
 
 % Init
 M = ranges(:, 2);
-bins = zeros(M');
-counts = zeros(M');
-
+if length(M) == 1
+    bins = zeros(M, 1);
+    counts = zeros(M, 1);
+else
+    bins = zeros(M');
+    counts = zeros(M');
+end
 disp('   Binning...')
 for ii = 1:N
     
