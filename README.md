@@ -1,9 +1,9 @@
 The MATLAB function histcounts allows to bin scattered data points into quantiles and counts the number of points falling into each quantile.
 HISTWEIGHT improves histcounts by considering intensity values for each data point that are spread across the neighbouring quantiles. 
 Here's an example of comparison using histweight versus histcounts with randomly scattered data points with the same intensity:
-![random_points_different_intensity](https://github.com/andrepiz/histweight/assets/75851004/aaac8b2b-35c5-45cd-9840-3d4819e2f0e8)
-And using data points with different intensity:
 ![random_points_same_intensity](https://github.com/andrepiz/histweight/assets/75851004/88a5992e-4b46-4b29-b31b-4c2d46506751)
+And using data points with different intensity:
+![random_points_different_intensity](https://github.com/andrepiz/histweight/assets/75851004/aaac8b2b-35c5-45cd-9840-3d4819e2f0e8)
 
 
 **[bins, counts, edges] = histweight(coords, values, limits, granularity, method)**
