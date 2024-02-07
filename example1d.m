@@ -4,7 +4,7 @@ addpath('permn')
 
 rng(10)
 n = 1e3;
-scenario = 'sine';
+scenario = 'sine uniform';
 
 R = 2;
 v1 = 1;
@@ -12,7 +12,7 @@ v2 = 2;
 shift = 1;
 
 switch scenario
-    case 'sine'
+    case 'sine uniform'
         % Uniform points on sine with larger intensity before half
         coords = shift + linspace(0, 10*pi, n);
         values = v1*R*sin(coords);
@@ -21,17 +21,26 @@ switch scenario
 end
 
 limits = [floor(min(coords, [], 2)), 1 + ceil(max(coords, [], 2))];
-gra = 3;
+
+%%---
 [bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra);
+%%--
+
+% You can also simply call:
+%   [bins_hw, counts_hw, edges_hw] = histweight(coords, values);
+% Granularity will be set to 1 as default and limits are automatically
+% computed
+
+% histcount comparison
+bins_hc = histcounts(coords(1,:)*gra, edges_hw{1});
+
+%% PLOT
 
 xbincoords = edges_hw{1};
 xbincoords = xbincoords(1:end-1) + 0.5;
 [XX] = ndgrid(xbincoords);
 
-% histcount comparison
-bins_hc = histcounts(coords(1,:)*gra, edges_hw{1});
-
-figure(), 
+figure('Units','normalized','Position',[0.1 0.1 0.8 0.8]), 
 
 ax1 = subplot(1,3,1);
 grid on, hold on
@@ -56,3 +65,7 @@ bar(xbincoords, bins_hc')
 title('histcounts')
 xlabel('x')
 ylabel('y')
+
+%% ERROR
+disp(['Sum of values: ',num2str(sum(values))])
+disp(['Sum of bins: ',num2str(sum(bins_hw,'all'))])
