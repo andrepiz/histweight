@@ -1,8 +1,10 @@
-function [bins, counts, edges] = histweight(coords, values, limits, granularity, method)
+function [bins, counts, edges] = histweight(coords, values, limits, granularity, method, flag_progress)
 % HISTWEIGHT weights and bin scattered data points into uniform quantiles of 
 % specified granularity within the specified limits. 
 % Each data point is expressed in D-dimensional coordinates and has an 
-% associated 1-dimensional value. The limits can be different for each dimension. 
+% associated 1-dimensional value. The dimensions are defined with respect to a 
+% D-dimensional grid (D1 = rows, D2 = columns, D3 = pages).
+% The limits can be different for each dimension. 
 % The granularity downsample the limits and increase the number of quantiles. 
 % Each value is spread to the neighbouring 
 % bins with a weight defined by three different methods:
@@ -13,9 +15,9 @@ function [bins, counts, edges] = histweight(coords, values, limits, granularity,
 % INPUTS:
 %   coords [D x N]
 %   values [1 x N]
-%   granularity [1]
 %   limits [D x 2]
-%   weightmethod [char]
+%   granularity [1]
+%   method [char]
 %
 % OUTPUTS:
 %   bins [M1 x ... x Mi x ... MD]
@@ -28,12 +30,17 @@ if nargin == 2
     limits = [floor(min(coords,[],2)), 1 + ceil(max(coords,[],2))];
     granularity = 1;
     method = 'area';
+    flag_progress = false;
 elseif nargin == 3
     granularity = 1;
     method = 'area';
+    flag_progress = false;
 elseif nargin == 4
     method = 'area';
-elseif nargin ~= 5
+    flag_progress = false;
+elseif nargin == 5
+    flag_progress = false;
+elseif nargin ~= 6
     error('Not enough inputs')
 end
 
@@ -69,7 +76,7 @@ else
     bins = zeros(M');
     counts = zeros(M');
 end
-disp('   Binning...')
+
 for ii = 1:N
     
     S = size(centers2vertexes, 1);
@@ -119,7 +126,7 @@ for ii = 1:N
             counts(neighbour_idx_cell{:}) = counts(neighbour_idx_cell{:}) + 1;
         end
     end
-    if mod(ii, round(N/10)) == 0
+    if mod(ii, round(N/10)) == 0 && flag_progress
         disp(['     ',num2str(round(1e2*ii/N)),'%'])
     end
 end

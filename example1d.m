@@ -3,8 +3,10 @@
 addpath('permn')
 
 rng(10)
-n = 1e3;
 scenario = 'sine uniform';
+
+method = 'area'; % 'area','diff','invsquared'
+gra = 1; % granularity. Default is 1
 
 R = 2;
 v1 = 1;
@@ -13,6 +15,7 @@ shift = 1;
 
 switch scenario
     case 'sine uniform'
+        n = 1e3;
         % Uniform points on sine with larger intensity before half
         coords = shift + linspace(0, 10*pi, n);
         values = v1*R*sin(coords);
@@ -23,13 +26,13 @@ end
 limits = [floor(min(coords, [], 2)), 1 + ceil(max(coords, [], 2))];
 
 %%---
-[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra);
+[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra, method);
 %%--
 
 % You can also simply call:
 %   [bins_hw, counts_hw, edges_hw] = histweight(coords, values);
 % Granularity will be set to 1 as default and limits are automatically
-% computed
+% computed. Area method is used as default.
 
 % histcount comparison
 bins_hc = histcounts(coords(1,:)*gra, edges_hw{1});
@@ -53,7 +56,7 @@ ylabel('y')
 ax2 = subplot(1,3,2);
 grid on, hold on
 xlim(gra*xlim(ax1))
-bar(xbincoords, bins_hw')
+bar(xbincoords, bins_hw)
 title('histweight')
 xlabel('x')
 ylabel('y')
@@ -61,7 +64,7 @@ ylabel('y')
 ax3 = subplot(1,3,3);
 grid on, hold on
 xlim(gra*xlim(ax1))
-bar(xbincoords, bins_hc')
+bar(xbincoords, bins_hc)
 title('histcounts')
 xlabel('x')
 ylabel('y')

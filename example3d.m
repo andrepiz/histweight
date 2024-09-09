@@ -3,10 +3,11 @@
 addpath('permn')
 
 rng(10)
-c = colormap('parula');
+cm_map = 'parula';
 %scenario = 'emisphere random';
 scenario = 'emisphere uniform';
 
+method = 'area'; % 'area','diff','invsquared'
 gra = 1; % granularity. Default is 1
 
 R = 15;
@@ -27,7 +28,6 @@ switch scenario
         xcoord(ixs_outside) = [];        
         ycoord(ixs_outside) = [];
         zcoord(ixs_outside) = [];
-        coords = [xcoord; ycoord; zcoord];
         values = v1/R*((xcoord-xshift).^2+(ycoord-yshift).^2+(zcoord-zshift).^2);
     case 'emisphere uniform'
         n = 2e5;
@@ -41,42 +41,49 @@ switch scenario
         xcoord(ixs_outside) = [];        
         ycoord(ixs_outside) = [];
         zcoord(ixs_outside) = [];
-        coords = [xcoord; ycoord; zcoord];
         values = v1/R*((xcoord-xshift).^2+(ycoord-yshift).^2+(zcoord-zshift).^2);
 end
 
-limits = [floor(min(coords, [], 2)), 1 + ceil(max(coords, [], 2))];
+xyzcoords = [xcoord; ycoord; zcoord];
+xyzlimits = [floor(min(xyzcoords, [], 2)), 1 + ceil(max(xyzcoords, [], 2))];
+ijkcoords = [ycoord; xcoord; zcoord]; % defined with respect to 3D matrix
+ijklimits = [xyzlimits(2,:); xyzlimits(1,:); xyzlimits(3,:)]; % defined with respect to 3D matrix
 
 %%---
-[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra);
+[bins_hw, counts_hw, edges_hw] = histweight(ijkcoords, values, ijklimits, gra, method);
 %%--
 
 % You can also simply call:
-%   [bins_hw, counts_hw, edges_hw] = histweight(coords, values);
+%   [bins_hw, counts_hw, edges_hw] = histweight(ijkcoords, values);
 % Granularity will be set to 1 as default and limits are automatically
-% computed
+% computed. Area method is used as default
 
 %% PLOT
 
-xbincoords = edges_hw{1};
-xbincoords = xbincoords(1:end-1) + 0.5;
-ybincoords = edges_hw{2};
-ybincoords = ybincoords(1:end-1) + 0.5;
-zbincoords = edges_hw{3};
-zbincoords = zbincoords(1:end-1) + 0.5;
-[XX, YY, ZZ] = ndgrid(xbincoords, ybincoords, zbincoords);
+ibincoords = edges_hw{1};
+ibincoords = ibincoords(1:end-1) + 0.5;
+jbincoords = edges_hw{2};
+jbincoords = jbincoords(1:end-1) + 0.5;
+kbincoords = edges_hw{3};
+kbincoords = kbincoords(1:end-1) + 0.5;
+[II, JJ, KK] = ndgrid(ibincoords, jbincoords, kbincoords);
+% Remove empty voxels
+xbincoords = JJ(bins_hw~=0);
+ybincoords = II(bins_hw~=0);
+zbincoords = KK(bins_hw~=0);
+bins_hw_filtered = bins_hw(bins_hw~=0);
 
 figure('Units','normalized','Position',[0.1 0.1 0.8 0.8]), 
-colormap(c)
+colormap(cm_map)
 
 ax1 = subplot(1,2,1);
 grid on, hold on, axis equal
-xlim(limits(1,:) + [-R/2,R/2])
-ylim(limits(2,:) + [-R/2,R/2])
-zlim(limits(3,:) + [-R/2,R/2])
+xlim(xyzlimits(1,:) + [-R/2,R/2])
+ylim(xyzlimits(2,:) + [-R/2,R/2])
+zlim(xyzlimits(3,:) + [-R/2,R/2])
 scatter3(xcoord, ycoord, zcoord, [], values, 'o')
-c = colorbar;
-c.Label.String = 'intensity';
+cb = colorbar;
+cb.Label.String = 'intensity';
 title('sampled points')
 xlabel('x')
 ylabel('y')
@@ -88,9 +95,9 @@ grid on, hold on, axis equal
 xlim(gra*xlim(ax1))
 ylim(gra*ylim(ax1))
 zlim(gra*zlim(ax1))
-scatter3(XX(bins_hw~=0), YY(bins_hw~=0), ZZ(bins_hw~=0), 130, bins_hw(bins_hw~=0), 's','filled')
-c = colorbar;
-c.Label.String = 'intensity';
+scatter3(xbincoords, ybincoords, zbincoords, 130, bins_hw_filtered, 's','filled')
+cb = colorbar;
+cb.Label.String = 'intensity';
 title('histweight')
 xlabel('x')
 ylabel('y')

@@ -3,11 +3,12 @@
 addpath('permn')
 
 rng(10)
-c = colormap('parula');
+cm_map = 'parula';
 % scenario = 'square uniform';
-% scenario = 'circle random';
-scenario = 'points random';
+scenario = 'circle random';
+% scenario = 'points random';
 
+method = 'area'; % 'area','diff','invsquared'
 gra = 1; % granularity. Default is 1
 
 R = 15;
@@ -24,7 +25,6 @@ switch scenario
         [xcoord, ycoord] = meshgrid(R*linspace(-1, 1, nside), R*linspace(-1, 1, nside));
         xcoord = xcoord(:)' + xshift;
         ycoord = ycoord(:)' + yshift;
-        coords = [xcoord; ycoord];
         values = v1*ones(1, length(xcoord));
         % Increase intensity of points at the sides
         values(xcoord - xshift > 0.5*R | ycoord - yshift > 0.5*R) = v2;
@@ -35,7 +35,6 @@ switch scenario
         theta = 2*pi*rand(1, n);
         xcoord = xshift + radius.*cos(theta);
         ycoord = yshift + radius.*sin(theta);
-        coords = [xcoord; ycoord];
         values = v1*ones(1, n);
         % Increase intensity of points at the center
         values((xcoord-xshift).^2+(ycoord-yshift).^2<(R/2)^2) = v2;
@@ -44,42 +43,45 @@ switch scenario
         % 2D scattered points
         xcoord = xshift + R*rand(1, n);
         ycoord = yshift + R*rand(1, n);
-        coords = [xcoord; ycoord];
         values = [v1*ones(1, floor(n/2)), v2*ones(1, n-floor(n/2))];
 end
 
-limits = [floor(min(coords, [], 2)), 1 + ceil(max(coords, [], 2))];
+xycoords = [xcoord; ycoord];
+xylimits = [floor(min(xycoords, [], 2)), 1 + ceil(max(xycoords, [], 2))];
+ijcoords = [ycoord; xcoord]; % defined with respect to 2D matrix
+ijlimits = [xylimits(2,:); xylimits(1,:)]; % defined with respect to 2D matrix
 
 %%---
-[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra);
+[bins_hw, counts_hw, edges_hw] = histweight(ijcoords, values, ijlimits, gra, method);
 %%--
 
 % You can also simply call:
-%   [bins_hw, counts_hw, edges_hw] = histweight(coords, values);
+%   [bins_hw, counts_hw, edges_hw] = histweight(ijcoords, values);
 % Granularity will be set to 1 as default and limits are automatically
-% computed
+% computed. Area method is used by default
 
 % histcount comparison
-bins_hc = histcounts2(coords(1,:)*gra, coords(2,:)*gra, edges_hw{1}, edges_hw{2});
+bins_hc = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw{1}, edges_hw{2});
 
 %% PLOT
 
-xbincoords = edges_hw{1};
-xbincoords = xbincoords(1:end-1) + 0.5;
-ybincoords = edges_hw{2};
-ybincoords = ybincoords(1:end-1) + 0.5;
-[XX, YY] = ndgrid(xbincoords, ybincoords);
+ibincoords = edges_hw{1};
+ibincoords = ibincoords(1:end-1) + 0.5;
+jbincoords = edges_hw{2};
+jbincoords = jbincoords(1:end-1) + 0.5;
+xbincoords = jbincoords;
+ybincoords = ibincoords;
 
 figure('Units','normalized','Position',[0.1 0.1 0.8 0.8]), 
-colormap(c)
+colormap(cm_map)
 
 ax1 = subplot(1,3,1);
 grid on, hold on, axis equal
-xlim(limits(1,:) + [-R/2,R/2])
-ylim(limits(2,:) + [-R/2,R/2])
-scatter(coords(1,:), coords(2,:), [], values,'o','filled')
-c = colorbar;
-c.Label.String = 'intensity';
+xlim(xylimits(1,:) + [-R/2,R/2])
+ylim(xylimits(2,:) + [-R/2,R/2])
+scatter(xycoords(1,:), xycoords(2,:), [], values,'o','filled')
+cb = colorbar;
+cb.Label.String = 'intensity';
 title('sampled points')
 xlabel('x')
 ylabel('y')
@@ -88,10 +90,10 @@ ax2 = subplot(1,3,2);
 grid on, hold on, axis equal
 xlim(gra*xlim(ax1))
 ylim(gra*ylim(ax1))
-h1 = imagesc([xbincoords(1), xbincoords(end)], [ybincoords(1), ybincoords(end)], bins_hw');
-set(h1, 'AlphaData', bins_hw'~=0)
-c = colorbar;
-c.Label.String = 'intensity';
+h1 = imagesc([xbincoords(1), xbincoords(end)], [ybincoords(1), ybincoords(end)], bins_hw);
+set(h1, 'AlphaData', bins_hw~=0)
+cb = colorbar;
+cb.Label.String = 'intensity';
 title('histweight')
 xlabel('x')
 ylabel('y')
@@ -100,10 +102,10 @@ ax3 = subplot(1,3,3);
 grid on, hold on, axis equal
 xlim(gra*xlim(ax1))
 ylim(gra*ylim(ax1))
-h2 = imagesc([xbincoords(1), xbincoords(end)], [ybincoords(1), ybincoords(end)], bins_hc');
-set(h2, 'AlphaData', bins_hc'~=0)
-c = colorbar;
-c.Label.String = 'counts';
+h2 = imagesc([xbincoords(1), xbincoords(end)], [ybincoords(1), ybincoords(end)], bins_hc);
+set(h2, 'AlphaData', bins_hc~=0)
+cb = colorbar;
+cb.Label.String = 'counts';
 title('histcounts')
 xlabel('x')
 ylabel('y')
