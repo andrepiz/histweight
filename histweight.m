@@ -52,7 +52,7 @@ if size(values,1) ~= 1 || size(values,2) ~= N
     error('Please provide values as [1xN] vector, where N is the second dimension of coords')
 end
 if size(limits,1) ~= D || size(limits,2) ~= 2
-    error('Please provide values as [Dx2] vector, where D is the first dimension of coords')
+    error('Please provide limits as [Dx2] vector, where D is the first dimension of coords')
 end
 
 % Shift in case of negative data
