@@ -58,13 +58,6 @@ ijlimits = [xylimits(2,:); xylimits(1,:)]; % defined with respect to 2D matrix
 
 Ntrials = 1e5;
 
-timings_original = nan(1, Ntrials);
-timings_optimized = nan(1, Ntrials);
-timings_optimized_vect = nan(1, Ntrials);
-timings_optimized_mex = nan(1, Ntrials);
-timings_optimized_mex_vect = nan(1, Ntrials);
-
-% ORIGINAL VERSION
 %%---
 for idTrial = 1:Ntrials
     tic
@@ -73,9 +66,6 @@ for idTrial = 1:Ntrials
 end
 %%--
 
-mean_timing_original = mean(timings_original, 'all', "omitnan");
-fprintf('\nMean time, original: %4.4g [ms]\n', 1000*mean_timing_original)
-
 methodID = int32(2); % 'area'
 bFlagProgress = false;
 bVECTORIZED   = false;
@@ -83,51 +73,15 @@ bDEBUG_MODE   = false;
 
 addpath("codegen_src/")
 
-% OPTIMIZED VERSION NON-VECT
-for idTrial = 1:Ntrials
+tic
+[bins_hw_vect, counts_hw_vect, edges_hw_vect] = histweight_vect(ijcoords, values, ijlimits, gra, methodID, bFlagProgress, bVECTORIZED, bDEBUG_MODE);
+timings_optimized(idTrial) = toc; 
 
-    tic
-    [bins_hw_vect, counts_hw_vect, edges_hw_vect] = histweight_vect(ijcoords, values, ijlimits, gra, methodID, bFlagProgress, false, bDEBUG_MODE);
-    timings_optimized(idTrial) = toc;
-end
+tic
+[bins_hw_vect_MEX, counts_hw_vect_MEX, edges_hw_vect_MEX] = histweight_vect_MEX(ijcoords, values, ijlimits, gra, int8(methodID), ...
+    bFlagProgress, bVECTORIZED, bDEBUG_MODE);
+timings_optimized_(idTrial) = toc; 
 
-mean_timings_optimized = mean(timings_optimized, 'all', "omitnan");
-fprintf('\nMean time, optimized non-vect: %4.4g [ms]\n', 1000*mean_timings_optimized)
-
-% OPTIMIZED VERSION VECT
-for idTrial = 1:Ntrials
-
-    tic
-    [bins_hw_vect, counts_hw_vect, edges_hw_vect] = histweight_vect(ijcoords, values, ijlimits, gra, methodID, bFlagProgress, true, bDEBUG_MODE);
-    timings_optimized_vect(idTrial) = toc;
-end
-
-mean_timings_optimized_vect = mean(timings_optimized_vect, 'all', "omitnan");
-fprintf('\nMean time, optimized vect: %4.4g [ms]\n', 1000*mean_timings_optimized_vect)
-
-%  OPTIMZIED MEX VERSION NON-VECT
-for idTrial = 1:Ntrials
-
-    tic
-    [bins_hw_vect_MEX, counts_hw_vect_MEX, edges_hw_vect_MEX] = histweight_vect_MEX(ijcoords, values, ijlimits, gra, int8(methodID), ...
-        bFlagProgress, false, bDEBUG_MODE);
-    timings_optimized_mex(idTrial) = toc;
-end
-
-mean_timings_optimized_mex = mean(timings_optimized_mex, 'all', "omitnan");
-fprintf('\nMean time, optimized_mex non-vect: %4.4g [ms]\n', 1000*mean_timings_optimized_mex)
-
-%  OPTIMZIED MEX VERSION VECT
-for idTrial = 1:Ntrials
-
-    tic
-    [bins_hw_vect_MEX, counts_hw_vect_MEX, edges_hw_vect_MEX] = histweight_vect_MEX(ijcoords, values, ijlimits, gra, int8(methodID), ...
-        bFlagProgress, true, bDEBUG_MODE);
-    timings_optimized_mex_vect(idTrial) = toc;
-end
-
-mean_timings_optimized_mex_vect = mean(timings_optimized_mex_vect, 'all', "omitnan");
-fprintf('\nMean time, optimized_mex vect: %4.4g [ms]\n', 1000*mean_timings_optimized_mex_vect)
 
 
 return

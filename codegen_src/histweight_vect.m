@@ -1,4 +1,4 @@
-function [bins, counts, edges] = histweight(dCoords, dValues, dLimits, dGranularity, i32Method, bFlagProgress, bVECTORIZED, bDEBUG_MODE)%#codegen
+function [bins, counts, edges] = histweight_vect(dCoords, dValues, dLimits, dGranularity, i32Method, bFlagProgress, bVECTORIZED, bDEBUG_MODE)%#codegen
 % HISTWEIGHT weights and bin scattered data points into uniform quantiles of 
 % specified granularity within the specified limits. 
 % Each data point is expressed in D-dimensional coordinates and has an 
@@ -29,14 +29,12 @@ arguments
     dValues        (1, :) double {isvector}
     dLimits        (:, 2) double {isvector} = [floor(min(dCoords,[],2)), 1 + ceil(max(dCoords,[],2))];
     dGranularity   (1, 1) double {isscalar} = 1 % uint32?
-    i32Method     (1, :) string            = 'area'
+    i32Method      (1, :) int32             = 2
     bFlagProgress  (1, 1) logical           = false;
     bVECTORIZED    (1, 1) logical           = false;
     bDEBUG_MODE    (1, 1) logical           = false;
 end
 
-bFlagProgress = true;
-bVECTORIZED = false;
 
 % Preliminary checks
 ui32CoordRowSize = uint32(size(dCoords, 1));
@@ -85,7 +83,16 @@ end
 % Define indices and loop sizes
 ui32S = uint32(size(centers2vertexes, 1)); % what the hell is this S? I do not get
 % dw = zeros(1, ui32S); % what is this?
-i32Method = 'area';
+
+% switch i32Method
+%     case 'invsquared'
+%       ID0
+%     case 'diff'
+%       ID1
+%     case 'area'
+%       ID2
+% end
+
 
 dCONST_METHOD_DIFF = 1.5.*sqrt(2); % Constant scaling required by diff method
 
@@ -93,7 +100,7 @@ for ii = 1:ui32CoordColSize
     dw = zeros(1, ui32S); % what is this?
 
     switch i32Method
-        case 'invsquared'
+        case 0
             % Inverse squared distance with each vertex
             % d = vecnorm(centers2vertexes(jj, :)' - dVectorCenters2points(:, ii));
             % dw(jj) = 1./(d.^2);
@@ -102,8 +109,10 @@ for ii = 1:ui32CoordColSize
             d = vecnorm(centers2vertexes' - dVectorCenters2points(:, ii), 2, 1);
             dw = 1./(d.^2);
             dw = dw./sum(dw);
+    
+            bNonZeroMask = all(dw == 0, 1);
 
-        case 'diff'
+        case 1
             % 1 minus distance normalized over maximum distance
             % d = vecnorm(centers2vertexes(jj, :)' - dVectorCenters2points(:, ii));
             % dw(jj) = 1 - d./dCONST_METHOD_DIFF;
@@ -112,8 +121,10 @@ for ii = 1:ui32CoordColSize
             d = vecnorm(centers2vertexes' - dVectorCenters2points(:, ii), 2, 1);
             dw = 1 - d./dCONST_METHOD_DIFF;
             dw = dw./sum(dw);
+            
+            bNonZeroMask = all(dw == 0, 1);
 
-        case 'area'
+        case 2
 
             % Fraction of [1x1] box area going to each sector
             % dSides = centers2vertexes(jj, :)' - dVectorCenters2points(:, ii); % DEVNOTE: there may be some way to vectorize this operation I think
@@ -130,7 +141,10 @@ for ii = 1:ui32CoordColSize
             dw(bNonZeroMask) = prod(1 - abs(dSides(:, bNonZeroMask)));
 
             assert(sum(dw) - 1.00 <= 1.5*eps, 'Area method: weights do not sum to 1')
-
+            
+        otherwise
+            bNonZeroMask = false(1,ui32S);
+            assert(0)
     end
 
 
@@ -177,6 +191,7 @@ for ii = 1:ui32CoordColSize
         % neighbour_idx_cell_vectorized = num2cell(sector_idx_bounder_vectorized)';
         % dWeightedValues = dValues(ii)*dw;
 
+        % DEVNOTE: memory access using (1,:) is slower than (:,1)
         % Get allocation linear indices
         linearIdx = sub2ind(dCoordRanges(:, 2)', sector_idx_bounder_vectorized(1, :), sector_idx_bounder_vectorized(2, :));
         
@@ -197,7 +212,10 @@ for ii = 1:ui32CoordColSize
 end
 
 wall_time = toc;
-fprintf('\n\tWall time of histweight call %5.4f [ms]', 1000*wall_time);
+
+if bDEBUG_MODE
+    fprintf('\n\tWall time of histweight call %5.4f [ms]\n', 1000*wall_time);
+end
 
 %   bins [M1 x ... x Mi x ... MD]
 %   counts [M1 x ... x Mi x ... MD]

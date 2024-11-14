@@ -49,17 +49,16 @@ coder_config.MATLABSourceComments = true;
 %                              SIMDAcceleration: 'Portable'
 % 
 % -----------------------------------------------------------------------
-coder_config.EnableAutoParallelization = true;
+coder_config.EnableAutoParallelization = false;
 coder_config.EnableAutoParallelizationReporting = true;
 coder_config.EnableOpenMP = true;
 coder_config.OptimizeReductions = true;
-coder_config.NumberOfCpuThreads = 6;
-
+coder_config.NumberOfCpuThreads = 0;
 
 %% Codegen execution: histweight
 histweight_codegen_setup;
 
-targetFcnName = 'histweight';
+targetFcnName = 'histweight_vect';
 makeCodegen(targetFcnName, args_cell, coder_config)
 
 
