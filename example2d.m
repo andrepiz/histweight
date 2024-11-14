@@ -4,11 +4,12 @@ addpath('permn')
 
 rng(10)
 cm_map = 'parula';
-% scenario = 'square uniform';
-scenario = 'circle random';
-% scenario = 'points random';
+%scenario = 'square uniform';
+%scenario = 'circle random';
+scenario = 'points random';
 
-method = 'area'; % 'area','diff','invsquared'
+method = 'gaussian'; % 'area','diff','invsquared','gaussian'
+size_kernel = 1;
 gra = 1; % granularity. Default is 1
 
 R = 15;
@@ -52,7 +53,7 @@ ijcoords = [ycoord; xcoord]; % defined with respect to 2D matrix
 ijlimits = [xylimits(2,:); xylimits(1,:)]; % defined with respect to 2D matrix
 
 %%---
-[bins_hw, counts_hw, edges_hw] = histweight(ijcoords, values, ijlimits, gra, method);
+[bins_hw, counts_hw, edges_hw] = histweight(ijcoords, values, ijlimits, gra, 'method', method, 'size_kernel', size_kernel);
 %%--
 
 % You can also simply call:

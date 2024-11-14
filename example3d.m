@@ -7,7 +7,7 @@ cm_map = 'parula';
 %scenario = 'emisphere random';
 scenario = 'emisphere uniform';
 
-method = 'area'; % 'area','diff','invsquared'
+method = 'area'; % 'area','diff','invsquared','gaussian'
 gra = 1; % granularity. Default is 1
 
 R = 15;

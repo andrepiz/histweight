@@ -5,7 +5,7 @@ addpath('permn')
 rng(10)
 scenario = 'sine uniform';
 
-method = 'area'; % 'area','diff','invsquared'
+method = 'gaussian'; % 'area','diff','invsquared','gaussian'
 gra = 1; % granularity. Default is 1
 
 R = 2;
@@ -26,7 +26,7 @@ end
 limits = [floor(min(coords, [], 2)), 1 + ceil(max(coords, [], 2))];
 
 %%---
-[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra, method);
+[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra, 'method', method);
 %%--
 
 % You can also simply call:

@@ -1,4 +1,4 @@
-function [bins, counts, edges] = histweight(coords, values, limits, granularity, method, flag_progress)
+function [bins, counts, edges] = histweight(coords, values, limits, granularity, params)
 % HISTWEIGHT weights and bin scattered data points into uniform quantiles of 
 % specified granularity within the specified limits. 
 % Each data point is expressed in D-dimensional coordinates and has an 
@@ -17,34 +17,28 @@ function [bins, counts, edges] = histweight(coords, values, limits, granularity,
 %   values [1 x N]
 %   limits [D x 2]
 %   granularity [1]
-%   method [char]
+%   params.method [char]            Method of gridding
+%   params.gaussian_std [1]         Only for "gaussian" method
+%   params.flag_progress [logical]  Display progress percentage
 %
 % OUTPUTS:
 %   bins [M1 x ... x Mi x ... MD]
 %   counts [M1 x ... x Mi x ... MD]
 %   edges [M1 x ... x Mi x ... MD]
 
-% Preliminary checks
-[D, N] = size(coords);
-if nargin == 2
-    limits = [floor(min(coords,[],2)), 1 + ceil(max(coords,[],2))];
-    granularity = 1;
-    method = 'area';
-    flag_progress = false;
-elseif nargin == 3
-    granularity = 1;
-    method = 'area';
-    flag_progress = false;
-elseif nargin == 4
-    method = 'area';
-    flag_progress = false;
-elseif nargin == 5
-    flag_progress = false;
-elseif nargin ~= 6
-    error('Not enough inputs')
+arguments
+    coords double
+    values double
+    limits double = [floor(min(coords,[],2)), 1 + ceil(max(coords,[],2))]
+    granularity (1,1) double = 1
+    params.method char = 'gaussian'
+    params.flag_progress (1,1) logical = false
+    params.gaussian_std (1,1) double = 1/3
+    params.window (1,1) double = 1;
 end
 
 % Size checks
+[D, N] = size(coords);
 if length(granularity) ~= 1 || granularity < 1 || floor(granularity) ~= granularity
     error('Please provide granularity as a scalar integer larger or equal to 1')
 end
@@ -65,7 +59,7 @@ centers = (0.5*sign(points - round(points)) + round(points));
 centers2points = points - centers;
 
 % Relative difference with neighbouring bins
-centers2vertexes = permn([-1, 0, 1], D);
+centers2vertexes = permn([-params.window:1:params.window], D);
 
 % Init
 M = ranges(:, 2);
@@ -83,13 +77,18 @@ for ii = 1:N
     w = zeros(S, 1);
 
     for jj = 1:S
-        switch method
+        switch params.method
+            case 'gaussian'
+                % Apply gaussian PSF
+                d = vecnorm(centers2vertexes(jj, :)' - centers2points(:, ii));
+                w(jj) = exp(-d/(2*params.gaussian_std*params.gaussian_std));
             case 'invsquared'
                 % Inverse squared distance with each vertex
                 d = vecnorm(centers2vertexes(jj, :)' - centers2points(:, ii));
                 w(jj) = 1/(d.^2);
             case 'diff'
-                % 1 minus distance normalized over maximum distance
+                % 1 minus distance normalized over maximum distance (a
+                % pixel diagonal + half diagonal)
                 d = vecnorm(centers2vertexes(jj, :)' - centers2points(:, ii));
                 w(jj) = 1 - d/(1.5*sqrt(2));
             case 'area'
@@ -100,12 +99,13 @@ for ii = 1:N
                     % w(jj) = (|x| + (0.5 - |x|) + (0.5 - |x|))*(|y| + (0.5 - |y|) + (0.5 - |y|))*... 
                     w(jj) = prod(1 - abs(sides));
                 end
+
             otherwise
                 error('Not Supported. Use area, diff or invsquared methods')
         end
     end
 
-    if strcmp(method, 'area') 
+    if strcmp(params.method, 'area') 
         if sum(w)-1 > eps
             error('Area method: weights do not sum to 1')
         end
@@ -126,7 +126,7 @@ for ii = 1:N
             counts(neighbour_idx_cell{:}) = counts(neighbour_idx_cell{:}) + 1;
         end
     end
-    if mod(ii, round(N/10)) == 0 && flag_progress
+    if mod(ii, round(N/10)) == 0 && params.flag_progress
         disp(['     ',num2str(round(1e2*ii/N)),'%'])
     end
 end

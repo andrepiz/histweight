@@ -8,7 +8,7 @@ c = colormap('parula');
 % scenario = 'circle random';
 scenario = 'points random';
 
-method = 'area'; % 'area','diff','invsquared'
+method = 'area'; % 'area','diff','invsquared','gaussian'
 gra = 1; % granularity. Default is 1
 threads = 6; % number of threads for parallel computation
 
@@ -54,7 +54,7 @@ limits = [floor(min(coords, [], 2)), 1 + ceil(max(coords, [], 2))];
 
 %%---
 tic
-[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra, method);
+[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra, 'method', method);
 t_elapsed_hw = toc
 %%--
 
@@ -64,7 +64,7 @@ if isempty(p)
     parpool
 end
 tic
-[bins_parhw, counts_parhw, edges_parhw] = parhistweight(coords, values, limits, gra, method, threads);
+[bins_parhw, counts_parhw, edges_parhw] = parhistweight(coords, values, limits, gra, 'method', method, 'nthreads',threads);
 t_elapsed_parhw = toc
 %%--
 
