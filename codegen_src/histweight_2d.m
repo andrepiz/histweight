@@ -1,4 +1,5 @@
-function [bins, counts, edges] = histweight_vect(dCoords, dValues, dLimits, dGranularity, i32Method, bFlagProgress, bVECTORIZED, bDEBUG_MODE)%#codegen
+function [bins, counts, edges] = histweight_2d(dCoords, dValues, dLimits, dGranularity, ...
+    i32Method, bFlagProgress, bVECTORIZED, bDEBUG_MODE, dGaussianSigma, dWindowSize)%#codegen
 % HISTWEIGHT weights and bin scattered data points into uniform quantiles of 
 % specified granularity within the specified limits. 
 % Each data point is expressed in D-dimensional coordinates and has an 
@@ -17,7 +18,9 @@ function [bins, counts, edges] = histweight_vect(dCoords, dValues, dLimits, dGra
 %   values [1 x N]
 %   limits [D x 2]
 %   granularity [1]
-%   method [char]
+%   params.method [char]            Method of gridding
+%   params.gaussian_std [1]         Only for "gaussian" method
+%   params.flag_progress [logical]  Display progress percentage
 %
 % OUTPUTS:
 %   bins [M1 x ... x Mi x ... MD]
@@ -33,7 +36,13 @@ arguments
     bFlagProgress  (1, 1) logical           = false;
     bVECTORIZED    (1, 1) logical           = false;
     bDEBUG_MODE    (1, 1) logical           = false;
+    dGaussianSigma (1, 1) double {isscalar} = 1/3
+    dWindowSize    (1, 1) double {isscalar} = 1;
 end
+% arguments
+%     params.dGaussianSigma (1,1) double = 1/3
+%     params.dWindowSize    (1,1) double = 1;
+% end
 
 
 % Preliminary checks
@@ -60,7 +69,7 @@ dCenterPoints = ( 0.5 * sign( dGridPoints - round(dGridPoints) ) + round(dGridPo
 dVectorCenters2points = dGridPoints - dCenterPoints;
 
 % Relative difference with neighbouring bins
-centers2vertexes = permn([-1, 0, 1], ui32CoordRowSize);
+centers2vertexes = permn(-dWindowSize : 1 : dWindowSize, ui32CoordRowSize);
 % DEVNOTE: Isn't the output of this function constant if number of rows of coords is fixed?
 % DEVNOTE 2: is ui32CoordRowSize fixed for each call of this function? If so, move to caller and pass as
 % input or mark as persistent.
@@ -81,7 +90,7 @@ end
 
 
 % Define indices and loop sizes
-ui32S = uint32(size(centers2vertexes, 1)); % what the hell is this S? I do not get
+ui32PermSize = uint32(size(centers2vertexes, 1)); % what the hell is this S? I do not get
 % dw = zeros(1, ui32S); % what is this?
 
 % switch i32Method
@@ -95,12 +104,14 @@ ui32S = uint32(size(centers2vertexes, 1)); % what the hell is this S? I do not g
 
 
 dCONST_METHOD_DIFF = 1.5.*sqrt(2); % Constant scaling required by diff method
+dCONST_METHOD_GAUSS = 2 * dGaussianSigma * dGaussianSigma ;
+bNonZeroMask = false;
 
 for ii = 1:ui32CoordColSize
-    dw = zeros(1, ui32S); % what is this?
+    dw = zeros(1, ui32PermSize); % what is this?
 
     switch i32Method
-        case 0
+        case 0 % Inverse squared
             % Inverse squared distance with each vertex
             % d = vecnorm(centers2vertexes(jj, :)' - dVectorCenters2points(:, ii));
             % dw(jj) = 1./(d.^2);
@@ -112,7 +123,7 @@ for ii = 1:ui32CoordColSize
     
             bNonZeroMask = all(dw == 0, 1);
 
-        case 1
+        case 1 % 
             % 1 minus distance normalized over maximum distance
             % d = vecnorm(centers2vertexes(jj, :)' - dVectorCenters2points(:, ii));
             % dw(jj) = 1 - d./dCONST_METHOD_DIFF;
@@ -124,7 +135,7 @@ for ii = 1:ui32CoordColSize
             
             bNonZeroMask = all(dw == 0, 1);
 
-        case 2
+        case 2 % Area
 
             % Fraction of [1x1] box area going to each sector
             % dSides = centers2vertexes(jj, :)' - dVectorCenters2points(:, ii); % DEVNOTE: there may be some way to vectorize this operation I think
@@ -142,8 +153,14 @@ for ii = 1:ui32CoordColSize
 
             assert(sum(dw) - 1.00 <= 1.5*eps, 'Area method: weights do not sum to 1')
             
+        case 3 % Gaussian window % NOT YET TESTED
+            % Apply gaussian PSF
+            d = vecnorm(centers2vertexes' - dVectorCenters2points(:, ii), 2, 1);
+            dw = 1 - exp(d./dCONST_METHOD_GAUSS);
+            dw = dw./sum(dw);
+            
         otherwise
-            bNonZeroMask = false(1,ui32S);
+            bNonZeroMask = false(1,ui32PermSize);
             assert(0)
     end
 
@@ -156,7 +173,7 @@ for ii = 1:ui32CoordColSize
     tic
 
     if not(bVECTORIZED)
-        for jj = 1:ui32S
+        for jj = 1:ui32PermSize
             if dw(jj) > 0
 
                 % Find index of sector
@@ -175,6 +192,7 @@ for ii = 1:ui32CoordColSize
 
             end
         end
+
 
     else
         % Vectorized version

@@ -1,4 +1,4 @@
-function [bins, counts, edges] = parhistweight(dCoords, dValues, dLimits, dGranularity, charMethod, ui8Numthreads)%#codegen
+function [bins, counts, edges] = parhistweight_2d(dCoords, dValues, dLimits, dGranularity, i32Method, ui8Numthreads, params)%#codegen
 % PARHISTWEIGHT Parallel version of histweights. Computation is performed
 % by splitting coords and values into a specified number of pools
 arguments
@@ -6,8 +6,12 @@ arguments
     dValues        (1, :) {isvector}
     dLimits        (:, 2) {isvector}      = [floor(min(dCoords,[],2)), 1 + ceil(max(dCoords,[],2))];
     dGranularity   (1, 1) {isscalar}      = 1 % uint32?
-    charMethod     (1, :) string          = 'area'
+    i32Method      (1, :) int32           = 2 % area
     ui8Numthreads  (1,1) uint8 {isscalar} = 4
+end
+arguments
+    params.dGaussianSigma (1,1) double = 1/3
+    params.dWindowSize    (1,1) double = 1;
 end
 
 % Preliminary checks
@@ -32,7 +36,9 @@ end
 
 % DEVNOTE: check histweight.m 
 parfor ix = 1:npools
-    [bins_pools{ix}, counts_pools{ix}] = histweight_codegen(coords_pools{ix}, values_pools{ix}, dLimits, dGranularity, charMethod, false);
+    [bins_pools{ix}, counts_pools{ix}] = histweight_2d(coords_pools{ix}, values_pools{ix}, dLimits, dGranularity, i32Method, ...
+                                                       false, false, false, 'dGaussianSigma', params.dGaussianSigma, ...
+                                                       'dWindowSize', params.dWindowSize);
 end
 
 % DEVNOTE: why is seems to me that there are duplicated operations done in histweight whose output is not used???
