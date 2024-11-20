@@ -32,6 +32,7 @@ coder_config.LaunchReport = true;
 if strcmpi(coder_config.Name, 'MexCodeConfig')
     coder_config.EnableJIT = false;
 elseif strcmpi(coder_config.Name, 'Embedded')
+    error('Not implemented yet.')
 end
 
 coder_config.MATLABSourceComments = true;
@@ -58,7 +59,7 @@ coder_config.NumberOfCpuThreads = 0;
 %% Codegen execution: histweight
 histweight_codegen_setup;
 
-targetFcnName = 'histweight_vect';
+targetFcnName = 'histweight_2d';
 makeCodegen(targetFcnName, args_cell, coder_config)
 
 

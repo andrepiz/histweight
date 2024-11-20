@@ -39,6 +39,9 @@ i8MethodId     = coder.typeof(int8(1),  [1, 1], [false, false]);
 bFlagProgress  = coder.typeof(false,    [1, 1], [false, false]);
 bVECTORIZED    = coder.typeof(false,    [1, 1], [false, false]);
 bDEBUG_MODE    = coder.typeof(false,    [1, 1], [false, false]);
+dGaussianSigma = coder.typeof(0,        [1, 1], [false, false]);
+dWindowSize    = coder.typeof(0,        [1, 1], [false, false]);
+
 
 args_cell{1} = dCoords      ;
 args_cell{2} = dValues      ;
@@ -48,7 +51,8 @@ args_cell{5} = i8MethodId   ;
 args_cell{6} = bFlagProgress;
 args_cell{7} = bVECTORIZED  ;
 args_cell{8} = bDEBUG_MODE  ;
-
+args_cell{9} = dGaussianSigma  ;
+args_cell{10} = dWindowSize  ;
 
 
 
