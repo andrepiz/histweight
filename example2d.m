@@ -104,9 +104,9 @@ end
 
 %% ORIGINAL PARALLEL
 for idTrial = 1:ui32Ntrials
-    tic
-    [bins_hw_par, counts_hw_par, edges_hw_par] = parhistweight(ijcoords, values, ijlimits, gra, 'method', method, 'nthreads',nthreads);
-    timings_original_parallel(idTrial) = toc;
+    % tic
+    % [bins_hw_par, counts_hw_par, edges_hw_par] = parhistweight(ijcoords, values, ijlimits, gra, 'method', method, 'nthreads',nthreads);
+    % timings_original_parallel(idTrial) = toc;
 end
 %%--
 
@@ -138,10 +138,10 @@ for idTrial = 1:ui32Ntrials
 end
 
 for idTrial = 1:ui32Ntrials
-    tic
-    [bins_hw_2dnoVect_par, counts_hw_2dnoVect_par, edges_hw_2dnoVect_par] = parhistweight_2d(ijcoords, values, ...
-        ijlimits, gra, methodID, nthreads, dGaussianSigma, dWindowSize);
-    timings_optimized_parallel(idTrial) = toc;
+    % tic
+    % [bins_hw_2dnoVect_par, counts_hw_2dnoVect_par, edges_hw_2dnoVect_par] = parhistweight_2d(ijcoords, values, ...
+    %     ijlimits, gra, methodID, nthreads, dGaussianSigma, dWindowSize);
+    % timings_optimized_parallel(idTrial) = toc;
 end
 %%--
 
@@ -211,23 +211,20 @@ end
 bins_hc = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw{1}, edges_hw{2});
 
 % EQUIVALENCE TEST (2d optimized)
-bins_hc_opt2dNoVect = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw_2dnoVect{1}, edges_hw_2dnoVect{2});
 
-bins_hc_2dmexNoVect = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw_2dnoVect_MEX{1}, edges_hw_2dnoVect_MEX{2});
-
-binsError_optNoVect = bins_hc_opt2dNoVect - bins_hc;
-binsError_mexNoVect = bins_hc_2dmexNoVect - bins_hc;
+binsError_2doptNoVect = bins_hw_2dnoVect - bins_hw;
+binsError_2dmexNoVect = bins_hw_2dnoVect_MEX - bins_hw;
 
 fprintf('\n------------------ EQUIVALENCE TEST -------------------\n')
 fprintf('\nOptimized version for 2d inputs (no mex):\n')
-fprintf('\tSum error: %4.4g\n', sum(binsError_optNoVect, 'all'))
-fprintf('\tMax error: %4.4g\n', max(binsError_optNoVect, [], 'all'))
-fprintf('\tMean error: %4.4g\n', mean(binsError_optNoVect, 'all'))
+fprintf('\tSum error: %4.4g\n', sum(binsError_2doptNoVect, 'all'))
+fprintf('\tMax error: %4.4g\n', max(binsError_2doptNoVect, [], 'all'))
+fprintf('\tMean error: %4.4g\n', mean(binsError_2doptNoVect, 'all'))
 
 fprintf('\nOptimized mexed version for 2d inputs:\n')
-fprintf('\tSum error: %4.4g\n', sum(binsError_mexNoVect, 'all'))
-fprintf('\tMax error: %4.4g\n', max(binsError_mexNoVect, [], 'all'))
-fprintf('\tMean error: %4.4g\n', mean(binsError_mexNoVect, 'all'))
+fprintf('\tSum error: %4.4g\n', sum(binsError_2dmexNoVect, 'all'))
+fprintf('\tMax error: %4.4g\n', max(binsError_2dmexNoVect, [], 'all'))
+fprintf('\tMean error: %4.4g\n', mean(binsError_2dmexNoVect, 'all'))
 
 
 return

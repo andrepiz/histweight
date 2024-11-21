@@ -130,7 +130,7 @@ for ii = 1:ui32CoordColSize
     % bNonZeroMask % can be reused here to replace loop
     % DEVNOTE: sector_idx may be converted to integers operations. Not sure max min can work with different
     % types though. UPDATE: it can with scalars and perfoms downcasting to integers.
-    tic
+    
     if not(bVECTORIZED)
         for jj = 1:ui32PermSize
             if dw(jj) > 0
@@ -179,11 +179,6 @@ for ii = 1:ui32CoordColSize
     end
 end
 
-wall_time = toc;
-
-if bDEBUG_MODE
-    fprintf('\n\tWall time of histweight call %5.4f [ms]\n', 1000*wall_time);
-end
 
 %   bins [M1 x ... x Mi x ... MD]
 %   counts [M1 x ... x Mi x ... MD]
