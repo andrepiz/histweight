@@ -50,7 +50,7 @@ switch scenario
         % Increase intensity of points at the center
         values((xcoord-xshift).^2+(ycoord-yshift).^2<(R/2)^2) = v2;
     case 'points random'
-        n = 100;
+        n = 1e5;
         % 2D scattered points
         xcoord = xshift + R*rand(1, n);
         ycoord = yshift + R*rand(1, n);
@@ -72,11 +72,28 @@ timings_optimized_vect = nan(1, ui32Ntrials);
 timings_optimized_mex = nan(1, ui32Ntrials);
 timings_optimized_mex_vect = nan(1, ui32Ntrials);
 
+
+% Inputs for histweight_2d and variants
+methodID      = int32(2); % 'area'
+bFlagProgress = false;
+bVECTORIZED   = false;
+bDEBUG_MODE   = false;
+
+
+% DEFINE for MEX versions (required, no optionals due to coder limitation)
+dGaussianSigma = 1/3;
+dWindowSize = 1;
+
 %% ORIGINAL VERSION
 %%---
 
 if bPROFILE_CODE == true
-    profile on -history -timer performance 
+    profStatus = profile('status');
+    if strcmpi(profStatus.ProfilerStatus, 'on')
+        profile off
+    end
+
+    profile on -history -timer performance
 end
 
 for idTrial = 1:ui32Ntrials
@@ -88,7 +105,7 @@ end
 %% ORIGINAL PARALLEL
 for idTrial = 1:ui32Ntrials
     tic
-    [bins_hw, counts_hw, edges_hw] = parhistweight(ijcoords, values, ijlimits, gra, 'method', method, 'nthreads',nthreads);
+    [bins_hw_par, counts_hw_par, edges_hw_par] = parhistweight(ijcoords, values, ijlimits, gra, 'method', method, 'nthreads',nthreads);
     timings_original_parallel(idTrial) = toc;
 end
 %%--
@@ -106,10 +123,6 @@ fprintf('\nMean time, original: %4.4g [ms]\n', 1000*mean_timing_original)
 mean_timing_original_parallel = mean(timings_original_parallel, 'all', "omitnan");
 fprintf('\nMean time, original parallelized: %4.4g [ms]\n', 1000*mean_timing_original_parallel)
 
-methodID      = int32(2); % 'area'
-bFlagProgress = false;
-bVECTORIZED   = false;
-bDEBUG_MODE   = false;
 
 %% OPTIMIZED VERSION NON-VECT
 if bPROFILE_CODE == true
@@ -119,15 +132,15 @@ end
 for idTrial = 1:ui32Ntrials
 
     tic
-    [bins_hw_novect, counts_hw_novect, edges_hw_novect] = histweight_2d(ijcoords, values, ijlimits, gra, ...
-        methodID, bFlagProgress, false, bDEBUG_MODE);
+    [bins_hw_2dnoVect, counts_hw_2dnoVect, edges_hw_2dnoVect] = histweight_2d(ijcoords, values, ijlimits, gra, ...
+        methodID, bFlagProgress, false, bDEBUG_MODE, dGaussianSigma, dWindowSize);
     timings_optimized(idTrial) = toc;
 end
 
 for idTrial = 1:ui32Ntrials
     tic
-    [bins_hw, counts_hw, edges_hw] = parhistweight_2d(ijcoords, values, ijlimits, gra, methodID, nthreads, ...
-        'dGaussianSigma', 1/3, 'dWindowSize', 1);
+    [bins_hw_2dnoVect_par, counts_hw_2dnoVect_par, edges_hw_2dnoVect_par] = parhistweight_2d(ijcoords, values, ...
+        ijlimits, gra, methodID, nthreads, dGaussianSigma, dWindowSize);
     timings_optimized_parallel(idTrial) = toc;
 end
 %%--
@@ -150,8 +163,8 @@ if bRUN_BENCHMARK == true
     for idTrial = 1:ui32Ntrials
 
         tic
-        [bins_hw_vect, counts_hw_vect, edges_hw_vect] = histweight_2d(ijcoords, values, ijlimits, gra, methodID, ...
-            bFlagProgress, true, bDEBUG_MODE);
+        [bins_hw_2dvect, counts_hw_2dvect, edges_hw_2dvect] = histweight_2d(ijcoords, values, ijlimits, gra, methodID, ...
+            bFlagProgress, true, bDEBUG_MODE, dGaussianSigma, dWindowSize);
         timings_optimized_vect(idTrial) = toc;
     end
 
@@ -164,8 +177,8 @@ end
 for idTrial = 1:ui32Ntrials
 
     tic
-    [bins_hw_vect_MEX, counts_hw_vect_MEX, edges_hw_vect_MEX] = histweight_2d_MEX(ijcoords, values, ijlimits, gra, int8(methodID), ...
-        bFlagProgress, false, bDEBUG_MODE);
+    [bins_hw_2dnoVect_MEX, counts_hw_2dnoVect_MEX, edges_hw_2dnoVect_MEX] = histweight_2d_MEX(ijcoords, values, ijlimits, gra, int8(methodID), ...
+        bFlagProgress, false, bDEBUG_MODE, dGaussianSigma, dWindowSize);
     timings_optimized_mex(idTrial) = toc;
 end
 
@@ -179,8 +192,8 @@ if bRUN_BENCHMARK == true
     for idTrial = 1:ui32Ntrials
 
         tic
-        [bins_hw_vect_MEX, counts_hw_vect_MEX, edges_hw_vect_MEX] = histweight_2d_MEX(ijcoords, values, ijlimits, gra, int8(methodID), ...
-            bFlagProgress, true, bDEBUG_MODE, 8);
+        [bins_hw_2dvect_MEX, counts_hw_2dvect_MEX, edges_hw_2dvect_MEX] = histweight_2d_MEX(ijcoords, values, ijlimits, gra, int8(methodID), ...
+            bFlagProgress, true, bDEBUG_MODE, dGaussianSigma, dWindowSize);
         timings_optimized_mex_vect(idTrial) = toc;
     end
 
@@ -198,12 +211,12 @@ end
 bins_hc = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw{1}, edges_hw{2});
 
 % EQUIVALENCE TEST (2d optimized)
-bins_hc_optNoVect = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw_novect{1}, edges_hw_novect{2});
+bins_hc_opt2dNoVect = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw_2dnoVect{1}, edges_hw_2dnoVect{2});
 
-bins_hc_mexNoVect = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw_2d_MEX{1}, edges_hw_vect_MEX{2});
+bins_hc_2dmexNoVect = histcounts2(ijcoords(1,:)*gra, ijcoords(2,:)*gra, edges_hw_2dnoVect_MEX{1}, edges_hw_2dnoVect_MEX{2});
 
-binsError_optNoVect = bins_hc_optNoVect - bins_hc;
-binsError_mexNoVect = bins_hc_mexNoVect - bins_hc;
+binsError_optNoVect = bins_hc_opt2dNoVect - bins_hc;
+binsError_mexNoVect = bins_hc_2dmexNoVect - bins_hc;
 
 fprintf('\n------------------ EQUIVALENCE TEST -------------------\n')
 fprintf('\nOptimized version for 2d inputs (no mex):\n')
