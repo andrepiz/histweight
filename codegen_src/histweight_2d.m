@@ -14,18 +14,21 @@ function [bins, counts, edges] = histweight_2d(dCoords, dValues, dLimits, dGranu
 %   area: fraction of square box area going to each sector
 %
 % INPUTS:
-%   coords [D x N]
-%   values [1 x N]
-%   limits [D x 2]
-%   granularity [1]
-%   params.method [char]            Method of gridding
-%   params.gaussian_std [1]         Only for "gaussian" method
-%   params.flag_progress [logical]  Display progress percentage
+%   dCoords        (2, :) double {ismatrix}
+%   dValues        (1, :) double {isvector}
+%   dLimits        (:, 2) double {isvector} = [floor(min(dCoords,[],2)), 1 + ceil(max(dCoords,[],2))];
+%   dGranularity   (1, 1) double {isscalar} = 1       % uint32?
+%   i32Method      (1, :) int32             = 2       % Method of gridding. Method ID: 0: Inv. squared, 1: Diff, 2: area, 3: Gaussian 
+%   bFlagProgress  (1, 1) logical           = false;  % Display progress percentage
+%   bVECTORIZED    (1, 1) logical           = false;
+%   bDEBUG_MODE    (1, 1) logical           = false;
+%   dGaussianSigma (1, 1) double {isscalar} = 1/3     % Only for "gaussian" method
+%   dWindowSize    (1, 1) double {isscalar} = 1;
 %
 % OUTPUTS:
-%   bins [M1 x ... x Mi x ... MD]
+%   bins   [M1 x ... x Mi x ... MD]
 %   counts [M1 x ... x Mi x ... MD]
-%   edges [M1 x ... x Mi x ... MD]
+%   edges  [M1 x ... x Mi x ... MD]
 
 arguments
     dCoords        (2, :) double {ismatrix}
@@ -39,11 +42,6 @@ arguments
     dGaussianSigma (1, 1) double {isscalar} = 1/3
     dWindowSize    (1, 1) double {isscalar} = 1;
 end
-% arguments
-%     params.dGaussianSigma (1,1) double = 1/3
-%     params.dWindowSize    (1,1) double = 1;
-% end
-
 
 % Preliminary checks
 ui32CoordRowSize = uint32(size(dCoords, 1));
@@ -52,11 +50,6 @@ ui32CoordColSize = uint32(size(dCoords, 2));
 assert(dGranularity >= 1, 'Please provide granularity as a scalar integer larger or equal to 1')
 assert(size(dValues,1) == 1 && size(dValues,2) == ui32CoordColSize, 'Please provide values as [1xN] vector, where N is the second dimension of coords')
 assert(size(dLimits,1) == ui32CoordRowSize && size(dLimits,2) == 2, 'Please provide limits as [Dx2] vector, where D is the first dimension of coords')
-
-
-% DEVNOTE: coder.ignoreConst
-% assert(strcmpi(charMethod, 'area') || strcmpi(charMethod, 'diff') || ...
-%     strcmpi(charMethod, 'invsquared'), 'Not Supported. Use area, diff or invsquared methods')
 
 % Shift in case of negative data
 dShiftVector = min(0, dLimits(:, 1) - 1);
@@ -85,68 +78,37 @@ else
     counts = zeros(M', 'uint32');
 end
 
-% bins_check = bins;
-% counts_check = counts;
-
 
 % Define indices and loop sizes
-ui32PermSize = uint32(size(centers2vertexes, 1)); % what the hell is this S? I do not get
-% dw = zeros(1, ui32S); % what is this?
-
-% switch i32Method
-%     case 'invsquared'
-%       ID0
-%     case 'diff'
-%       ID1
-%     case 'area'
-%       ID2
-% end
-
+ui32PermSize = uint32(size(centers2vertexes, 1)); 
 
 dCONST_METHOD_DIFF = 1.5.*sqrt(2); % Constant scaling required by diff method
 dCONST_METHOD_GAUSS = 2 * dGaussianSigma * dGaussianSigma ;
 bNonZeroMask = false;
 
 for ii = 1:ui32CoordColSize
-    dw = zeros(1, ui32PermSize); % what is this?
+    dw = zeros(1, ui32PermSize);
 
     switch i32Method
-        case 0 % Inverse squared
+        case 0 % Inverse squared method
             % Inverse squared distance with each vertex
-            % d = vecnorm(centers2vertexes(jj, :)' - dVectorCenters2points(:, ii));
-            % dw(jj) = 1./(d.^2);
-
-            % Vectorized code
             d = vecnorm(centers2vertexes' - dVectorCenters2points(:, ii), 2, 1);
             dw = 1./(d.^2);
             dw = dw./sum(dw);
     
             bNonZeroMask = all(dw == 0, 1);
 
-        case 1 % 
+        case 1 % Diff method
             % 1 minus distance normalized over maximum distance
-            % d = vecnorm(centers2vertexes(jj, :)' - dVectorCenters2points(:, ii));
-            % dw(jj) = 1 - d./dCONST_METHOD_DIFF;
-
-            % Vectorized code
             d = vecnorm(centers2vertexes' - dVectorCenters2points(:, ii), 2, 1);
             dw = 1 - d./dCONST_METHOD_DIFF;
             dw = dw./sum(dw);
             
             bNonZeroMask = all(dw == 0, 1);
 
-        case 2 % Area
+        case 2 % Area method
 
             % Fraction of [1x1] box area going to each sector
-            % dSides = centers2vertexes(jj, :)' - dVectorCenters2points(:, ii); % DEVNOTE: there may be some way to vectorize this operation I think
-
-            % if all(abs(dSides) < 1)
-            % note: all the weights should sum to 1
-            % w(jj) = (|x| + (0.5 - |x|) + (0.5 - |x|))*(|y| + (0.5 - |y|) + (0.5 - |y|))*...
-            % dw(jj) = prod(1 - abs(dSides));
-            % end % Else what happens?
-
-            % Vectorized mode
             dSides = centers2vertexes' - dVectorCenters2points(:, ii);
             bNonZeroMask = all(abs(dSides) < 1, 1);
             dw(bNonZeroMask) = prod(1 - abs(dSides(:, bNonZeroMask)));
@@ -164,14 +126,11 @@ for ii = 1:ui32CoordColSize
             assert(0)
     end
 
-
     % Assigning weighted value to each array element and its neighbours in the D-dimensional space
-
     % bNonZeroMask % can be reused here to replace loop
     % DEVNOTE: sector_idx may be converted to integers operations. Not sure max min can work with different
     % types though. UPDATE: it can with scalars and perfoms downcasting to integers.
     tic
-
     if not(bVECTORIZED)
         for jj = 1:ui32PermSize
             if dw(jj) > 0
@@ -203,11 +162,7 @@ for ii = 1:ui32CoordColSize
         sector_idx_vectorized = ceil(dCenterPoints(:, ii) + centers2vertexes_reduced'); % vectorizable
 
         % Enforce bounds for sector_idx
-        % sector_idx_bounder_vectorized = zeros(size(sector_idx_vectorized), 'double');
         sector_idx_bounder_vectorized = max(dCoordRanges(:, 1), min( sector_idx_vectorized, dCoordRanges(:, 2)) );
-
-        % neighbour_idx_cell_vectorized = num2cell(sector_idx_bounder_vectorized)';
-        % dWeightedValues = dValues(ii)*dw;
 
         % DEVNOTE: memory access using (1,:) is slower than (:,1)
         % Get allocation linear indices
@@ -216,11 +171,6 @@ for ii = 1:ui32CoordColSize
         % Allocate values
         bins(linearIdx) = bins(linearIdx) + dValues(ii).*dw_reduced; % Allocate dWeightedValues for each ii in all indexed entries of bins
         counts(linearIdx) = counts(linearIdx) + uint32(1);
-
-        if bDEBUG_MODE
-            % assert(any( (bins - bins_check) <= 1.5*eps, 'all') )
-            % assert(all( (counts - counts_check) == 0, 'all') )
-        end
 
     end
     % Print computation progress
