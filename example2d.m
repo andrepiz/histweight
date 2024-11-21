@@ -4,7 +4,7 @@ clc
 close all
 
 %% OPTIONS
-bRUN_BENCHMARK = false;
+bRUN_BENCHMARK = true;
 ui32Ntrials = 100;
 bPROFILE_CODE = false;
 
@@ -118,10 +118,10 @@ if bPROFILE_CODE == true
 end
 
 mean_timing_original = mean(timings_original, 'all', "omitnan");
-fprintf('\nMean time, original: %4.4g [ms]\n', 1000*mean_timing_original)
+fprintf('\nMean time, original: %4.4g [ms]\n', mean_timing_original/1000)
 
 mean_timing_original_parallel = mean(timings_original_parallel, 'all', "omitnan");
-fprintf('\nMean time, original parallelized: %4.4g [ms]\n', 1000*mean_timing_original_parallel)
+fprintf('\nMean time, original parallelized: %4.4g [ms]\n', mean_timing_original_parallel/1000)
 
 
 %% OPTIMIZED VERSION NON-VECT
@@ -152,10 +152,10 @@ if bPROFILE_CODE == true
 end
 
 mean_timings_optimized = mean(timings_optimized, 'all', "omitnan");
-fprintf('\nMean time, optimized non-vect: %4.4g [ms]\n', 1000*mean_timings_optimized)
+fprintf('\nMean time, optimized non-vect: %4.4g [ms]\n', mean_timings_optimized/1000)
 
 mean_timing_optimized_parallel = mean(timings_optimized_parallel, 'all', "omitnan");
-fprintf('\nMean time, optimized parallelized: %4.4g [ms]\n', 1000*mean_timing_optimized_parallel)
+fprintf('\nMean time, optimized parallelized: %4.4g [ms]\n', mean_timing_optimized_parallel/1000)
 
 %% OPTIMIZED VERSION VECT
 if bRUN_BENCHMARK == true
@@ -169,7 +169,7 @@ if bRUN_BENCHMARK == true
     end
 
     mean_timings_optimized_vect = mean(timings_optimized_vect, 'all', "omitnan");
-    fprintf('\nMean time, optimized vect: %4.4g [ms]\n', 1000*mean_timings_optimized_vect)
+    fprintf('\nMean time, optimized vect: %4.4g [ms]\n', mean_timings_optimized_vect/1000)
 
 end
 
@@ -183,7 +183,7 @@ for idTrial = 1:ui32Ntrials
 end
 
 mean_timings_optimized_mex = mean(timings_optimized_mex, 'all', "omitnan");
-fprintf('\nMean time, optimized_mex non-vect: %4.4g [ms]\n', 1000*mean_timings_optimized_mex)
+fprintf('\nMean time, optimized_mex non-vect: %4.4g [ms]\n', mean_timings_optimized_mex/1000)
 
 %%  OPTIMIZED MEX VERSION VECT
 
@@ -198,7 +198,7 @@ if bRUN_BENCHMARK == true
     end
 
     mean_timings_optimized_mex_vect = mean(timings_optimized_mex_vect, 'all', "omitnan");
-    fprintf('\nMean time, optimized_mex vect: %4.4g [ms]\n', 1000*mean_timings_optimized_mex_vect)
+    fprintf('\nMean time, optimized_mex vect: %4.4g [ms]\n', mean_timings_optimized_mex_vect/1000)
 
 end
 
