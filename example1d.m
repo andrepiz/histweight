@@ -26,8 +26,23 @@ end
 limits = [floor(min(coords, [], 2)), 1 + ceil(max(coords, [], 2))];
 
 %%---
-[bins_hw, counts_hw, edges_hw] = histweight(coords, values, limits, gra, 'method', method);
+tic
+[bins_hw_GT, counts_hw_GT, edges_hw_GT] = histweight(coords, values, limits, gra, 'method', method);
+toc
 %%--
+
+methodID = int32(2); % 'area'
+bFlagProgress = false;
+bVECTORIZED   = false;
+bDEBUG_MODE   = false;
+
+addpath("codegen_src/")
+
+tic
+[bins_hw_vect, counts_hw_vect, edges_hw_vect] = histweight_vect(coords, values, limits, gra, methodID, bFlagProgress, bVECTORIZED, bDEBUG_MODE);
+toc
+
+return
 
 % You can also simply call:
 %   [bins_hw, counts_hw, edges_hw] = histweight(coords, values);
